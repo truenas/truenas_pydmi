@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 concurrency:
@@ -45,3 +45,20 @@ jobs:
 
       - name: Run pytest
         run: pytest -v
+
+  deb-build:
+    name: Build Debian package
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            devscripts debhelper dh-python pybuild-plugin-pyproject \
+            python3-all python3-setuptools
+
+      - name: Build Debian package
+        run: dpkg-buildpackage -us -uc -b

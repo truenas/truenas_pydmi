@@ -1,0 +1,6 @@
+truenas-pydmi (0.1.0-1) trixie; urgency=medium
+
+  * Initial release.
+  * DMI / SMBIOS introspection library for TrueNAS.
+
+ -- TrueNAS Engineering <dev@truenas.com>  Fri, 08 May 2026 00:00:00 +0000

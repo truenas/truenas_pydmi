@@ -1,0 +1,18 @@
+Source: truenas-pydmi
+Section: contrib/python
+Priority: optional
+Maintainer: TrueNAS Engineering <dev@truenas.com>
+Build-Depends: debhelper-compat (= 12),
+               dh-python,
+               pybuild-plugin-pyproject,
+               python3-all,
+               python3-setuptools
+Standards-Version: 4.4.1
+Homepage: https://github.com/truenas/truenas_pydmi
+
+Package: python3-truenas-pydmi
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}
+Description: DMI / SMBIOS introspection for TrueNAS
+ Pure-Python library providing DMI / SMBIOS parsing and introspection
+ utilities used by TrueNAS.
