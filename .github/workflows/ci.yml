@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ruff check
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "check src tests"
+
+      - name: ruff format --check
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "format --check src tests"
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - name: Compile-check all Python sources
+        run: python -m compileall -q src tests
+
+      - name: Install package with test dependencies
+        run: pip install -e .[test]
+
+      - name: Run pytest
+        run: pytest -v
