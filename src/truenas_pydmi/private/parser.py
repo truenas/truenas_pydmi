@@ -2,8 +2,7 @@
 
 Reads ``/sys/firmware/dmi/tables/smbios_entry_point`` and
 ``/sys/firmware/dmi/tables/DMI`` and produces a tuple of
-:class:`models.RawStructure` records. Everything is read once per process
-via :func:`functools.cache`.
+:class:`RawStructure` records.
 
 Tests can override the sysfs root by setting the
 ``TRUENAS_PYDMI_SYSFS_ROOT`` environment variable.
@@ -12,13 +11,12 @@ Tests can override the sysfs root by setting the
 from __future__ import annotations
 
 from dataclasses import dataclass
-import functools
 import os
 from pathlib import Path
 import struct
 
-from .errors import DMIPermissionError, DMIProtocolError, DMIUnavailableError
-from .models import RawStructure
+from truenas_pydmi.errors import DMIPermissionError, DMIProtocolError, DMIUnavailableError
+from truenas_pydmi.models import RawStructure
 
 ENTRY_POINT_REL_PATH = "/sys/firmware/dmi/tables/smbios_entry_point"
 TABLES_REL_PATH = "/sys/firmware/dmi/tables/DMI"
@@ -54,7 +52,6 @@ class ParsedSMBIOS:
     structures: tuple[RawStructure, ...]
 
 
-@functools.cache
 def is_available() -> bool:
     return Path(_entry_point_path()).exists() and Path(_tables_path()).exists()
 
@@ -146,9 +143,8 @@ def _walk_structures(buf: bytes, max_length: int) -> tuple[RawStructure, ...]:
     return tuple(structures)
 
 
-@functools.cache
 def parse_dmi() -> ParsedSMBIOS:
-    """Read and parse the SMBIOS tables. Cached for the lifetime of the process."""
+    """Read and parse the SMBIOS tables fresh."""
     if not is_available():
         raise DMIUnavailableError(_entry_point_path(), _tables_path())
 
