@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date
 from uuid import UUID
 
-from . import _enums
+from truenas_pydmi import enums
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -43,7 +43,7 @@ class BIOSInfo:
         """Human-readable feature names from the 64-bit characteristics
         qword and any extension bytes (e.g. 'PCI supported', 'UEFI
         Specification supported')."""
-        return _enums.bios_characteristics_names(self.characteristics, self.characteristics_extension)
+        return enums.bios_characteristics_names(self.characteristics, self.characteristics_extension)
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -190,33 +190,33 @@ class CacheInfo:
     def location_name(self) -> str:
         """Cache location relative to the CPU module (bits 5-6 of
         configuration): Internal, External, Reserved, or Unknown."""
-        return _enums.cache_location_name((self.configuration >> 5) & 0x03)
+        return enums.cache_location_name((self.configuration >> 5) & 0x03)
 
     @property
     def operational_mode_name(self) -> str:
         """Write Through / Write Back / Varies / Unknown
         (bits 8-9 of configuration)."""
-        return _enums.cache_operational_mode_name((self.configuration >> 8) & 0x03)
+        return enums.cache_operational_mode_name((self.configuration >> 8) & 0x03)
 
     @property
     def error_correction_name(self) -> str:
-        return _enums.cache_error_correction_name(self.error_correction)
+        return enums.cache_error_correction_name(self.error_correction)
 
     @property
     def system_cache_type_name(self) -> str:
-        return _enums.cache_system_type_name(self.system_cache_type)
+        return enums.cache_system_type_name(self.system_cache_type)
 
     @property
     def associativity_name(self) -> str:
-        return _enums.cache_associativity_name(self.associativity)
+        return enums.cache_associativity_name(self.associativity)
 
     @property
     def supported_sram_type_names(self) -> tuple[str, ...]:
-        return _enums.cache_sram_type_names(self.supported_sram_types)
+        return enums.cache_sram_type_names(self.supported_sram_types)
 
     @property
     def current_sram_type_names(self) -> tuple[str, ...]:
-        return _enums.cache_sram_type_names(self.current_sram_type)
+        return enums.cache_sram_type_names(self.current_sram_type)
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -299,11 +299,11 @@ class MemoryDevice:
 
     @property
     def memory_technology_name(self) -> str:
-        return _enums.memory_technology_name(self.memory_technology)
+        return enums.memory_technology_name(self.memory_technology)
 
     @property
     def operating_mode_names(self) -> tuple[str, ...]:
-        return _enums.memory_operating_mode_names(self.operating_mode_capability)
+        return enums.memory_operating_mode_names(self.operating_mode_capability)
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -359,3 +359,69 @@ class TPMDevice:
         major = (self.firmware_version_1 >> 16) & 0xFF
         minor = self.firmware_version_1 & 0xFF
         return f"{major}.{minor}"
+
+
+# SMBIOS Type 1 product-name prefixes burned in by production for each iX
+# platform: z, x, m (incl. current minis), f, h, r, v, freenas-mini.
+PLATFORM_PREFIXES: tuple[str, ...] = (
+    "TRUENAS-Z",
+    "TRUENAS-X",
+    "TRUENAS-M",
+    "TRUENAS-F",
+    "TRUENAS-H",
+    "TRUENAS-R",
+    "TRUENAS-V",
+    "FREENAS-MINI",
+)
+
+TRUENAS_UNKNOWN = "TRUENAS-UNKNOWN"
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
+class DMIInfo:
+    """Aggregate of every SMBIOS structure parsed from one host in one pass.
+
+    Singletons (``bios``, ``system``) are ``None`` when the corresponding
+    SMBIOS type is absent. Lists are empty tuples when no structures of
+    that type are present.
+    """
+
+    smbios_version: tuple[int, int]
+    bios: BIOSInfo | None
+    system: SystemInfo | None
+    baseboards: tuple[BaseboardInfo, ...]
+    chassis: tuple[ChassisInfo, ...]
+    processors: tuple[ProcessorInfo, ...]
+    caches: tuple[CacheInfo, ...]
+    system_slots: tuple[SystemSlot, ...]
+    oem_strings: tuple[str, ...]
+    memory_arrays: tuple[MemoryArray, ...]
+    memory_devices: tuple[MemoryDevice, ...]
+    ipmi_devices: tuple[IPMIDevice, ...]
+    tpm_devices: tuple[TPMDevice, ...]
+    raw_structures: tuple[RawStructure, ...]
+    tn_model: str
+
+    @property
+    def ecc_memory(self) -> bool:
+        """True if any Physical Memory Array reports an ECC mode."""
+        return any(enums.is_ecc(a.error_correction) for a in self.memory_arrays)
+
+    @property
+    def has_ipmi(self) -> bool:
+        """True if any IPMI Device Information (Type 38) structure is present."""
+        return bool(self.ipmi_devices)
+
+    @property
+    def has_tpm(self) -> bool:
+        """True if any TPM Device (Type 43) structure is present."""
+        return bool(self.tpm_devices)
+
+    def cache_by_handle(self, handle: int) -> CacheInfo | None:
+        """Look up a :class:`CacheInfo` by its SMBIOS structure handle.
+        Useful for resolving the ``l1_cache_handle`` / ``l2_cache_handle`` /
+        ``l3_cache_handle`` fields on :class:`ProcessorInfo`."""
+        for c in self.caches:
+            if c.handle == handle:
+                return c
+        return None

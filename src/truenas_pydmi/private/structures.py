@@ -14,7 +14,7 @@ from datetime import date, datetime
 import struct
 from uuid import UUID
 
-from . import models
+from truenas_pydmi import models
 
 
 def _str(strings: tuple[str, ...], index: int) -> str:

@@ -37,8 +37,6 @@ select = [
 ignore = [
     # Async function definition with a `timeout` parameter
     "ASYNC109",
-    # Prefer absolute imports over relative imports from parent modules
-    "TID252",
 ]
 
 [tool.ruff.lint.isort]

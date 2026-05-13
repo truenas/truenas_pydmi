@@ -6,25 +6,22 @@ from pathlib import Path
 
 import pytest
 
+from truenas_pydmi.reader import read_dmi
+
 _FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture
 def dmi_fixture(monkeypatch):
-    """Returns a callable that swaps ``TRUENAS_PYDMI_SYSFS_ROOT`` to point
-    at a captured DMI fixture under ``tests/fixtures/dmi/<name>/`` and
-    returns the ``truenas_pydmi`` module with caches cleared so the next
-    call re-reads from the fixture root. The env var is reverted and the
-    caches are cleared again on test teardown."""
-    import truenas_pydmi as _dmi
+    """Return a callable that points ``TRUENAS_PYDMI_SYSFS_ROOT`` at a
+    captured DMI fixture under ``tests/fixtures/dmi/<name>/`` and returns
+    a fresh :class:`truenas_pydmi.models.DMIInfo` parsed from it."""
 
     def _use(name: str):
         root = _FIXTURES_DIR / "dmi" / name
         if not (root / "sys/firmware/dmi/tables/DMI").exists():
             pytest.fail(f"DMI fixture not found: {root}")
         monkeypatch.setenv("TRUENAS_PYDMI_SYSFS_ROOT", str(root))
-        _dmi.reload()
-        return _dmi
+        return read_dmi()
 
-    yield _use
-    _dmi.reload()
+    return _use
